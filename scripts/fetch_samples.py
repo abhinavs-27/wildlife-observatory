@@ -90,10 +90,10 @@ def main() -> int:
                              "study": r["study"], "source": IMG + r["filename"]})
             print(f"{sp:24s} {dest.name}")
 
-    # NACTI images carry no capture time in EXIF, so ingestion would fall back to the download
-    # time and lump every sample into one "visit". For demo/test data only, we stamp each file's
-    # mtime with a SYNTHETIC time spread over the last 30 days (recorded in the manifest as
-    # `synthetic_time`). Real camera uploads use their own EXIF/container timestamps.
+    # Most NACTI photos carry a real EXIF capture time, which ingestion prefers. Some don't, and
+    # would fall back to the download time, lumping unrelated samples into one "visit". As a
+    # fallback for demo/test data only, we stamp each file's mtime with a SYNTHETIC time spread
+    # over the last 30 days (recorded as `synthetic_time`). It is only used when EXIF is missing.
     import os
     import time as _time
     now = _time.time()

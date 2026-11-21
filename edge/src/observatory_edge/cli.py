@@ -50,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--token", required=True)
     p.add_argument("--dest", type=Path, default=Path("~/WildlifeObservatoryBackups").expanduser())
 
+    sub.add_parser("ftp", help="run the LAN-only FTP receiver for camera uploads")
+
     a = sub.add_parser("ask", help="ask a question")
     a.add_argument("question", nargs="+")
     sub.add_parser("health", help="print health details")
@@ -63,6 +65,11 @@ def main(argv: list[str] | None = None) -> int:
         from .api import create_app
         uvicorn.run(create_app(settings, start_background=not args.no_background),
                     host=args.host, port=args.port, log_config=None)
+        return 0
+
+    if args.cmd == "ftp":
+        from .ftp_receiver import main as ftp_main
+        ftp_main()
         return 0
 
     if args.cmd == "backup-pull":

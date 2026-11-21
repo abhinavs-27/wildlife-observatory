@@ -1,0 +1,87 @@
+# Wildlife Observatory
+#
+#   docker compose --profile dev up --build      # everything on the Mac (worker in Docker = CPU only)
+#   docker compose --profile pi up -d            # on the Pi: edge + web + FTP receiver + detect worker
+#
+# Images for the Pi are built on the Mac (see docs/pi-deployment.md) - never on the Pi.
+# Nothing here should be port-forwarded on the router; remote access is via Tailscale.
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  edge:
+    image: ${REGISTRY:-}observatory-edge:${TAG:-latest}
+    build: ./edge
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ${DATA_PATH:-./data}:/data
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${EDGE_PORT:-8000}:8000"
+    mem_limit: 512m
+    logging: *logging
+
+  web:
+    image: ${REGISTRY:-}observatory-web:${TAG:-latest}
+    build: ./web
+    restart: unless-stopped
+    environment:
+      EDGE_INTERNAL_URL: http://edge:8000
+      NEXT_PUBLIC_CAMERA_TIMEZONE: ${CAMERA_TIMEZONE:-America/New_York}
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${WEB_PORT:-3000}:3000"
+    depends_on:
+      edge: { condition: service_healthy }
+    mem_limit: 384m
+    logging: *logging
+
+  worker:
+    image: ${REGISTRY:-}observatory-worker:${TAG:-latest}
+    build: ./worker
+    profiles: [dev, pi]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      EDGE_URL: http://edge:8000
+      WORKER_ID: ${WORKER_ID:-pi-worker}
+      # On the Pi, default to detection only; species classification runs on the Mac.
+      WORKER_KINDS: ${WORKER_KINDS:-detect}
+      TORCH_THREADS: ${TORCH_THREADS:-3}
+      TORCH_DEVICE: cpu
+    volumes:
+      - model-cache:/models
+    depends_on:
+      edge: { condition: service_healthy }
+    # An OOM kills only this container, never the edge or dashboard.
+    mem_limit: ${WORKER_MEM_LIMIT:-1800m}
+    cpus: ${WORKER_CPUS:-3}
+    logging: *logging
+
+  ftp:
+    image: ${REGISTRY:-}observatory-edge:${TAG:-latest}
+    profiles: [pi]
+    restart: unless-stopped
+    command: ["observatory", "--json-logs", "ftp"]
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      FTP_PASSWORD_FILE: /run/secrets/ftp_password
+    secrets: [ftp_password]
+    volumes:
+      - ${DATA_PATH:-./data}:/data
+    # Host networking so passive-mode replies advertise the Pi's LAN address, not a
+    # container IP (otherwise the camera hangs). Set FTP_MASQUERADE_ADDRESS if needed.
+    network_mode: host
+    mem_limit: 128m
+    logging: *logging
+
+secrets:
+  ftp_password:
+    file: ./secrets/ftp_password.txt
+
+volumes:
+  model-cache:

@@ -12,3 +12,6 @@ samples/
 *.db
 .DS_Store
 web/next-env.d.ts
+secrets/*.txt
+.dockerignore-cache
+data-compose/
