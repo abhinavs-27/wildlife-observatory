@@ -20,6 +20,7 @@ class Settings:
     admin1_region: str = "NJ"
     encounter_gap_s: int = 120
     track_max_gap_s: int = 30
+    animal_threshold: float = 0.2
     alert_threshold: float = 0.5
     person_threshold: float = 0.5
     uncertain_score: float = 0.5
@@ -76,6 +77,7 @@ def get_settings() -> Settings:
         admin1_region=_env("ADMIN1_REGION", "NJ"),
         encounter_gap_s=int(_env("ENCOUNTER_GAP_S", "120")),
         track_max_gap_s=int(_env("TRACK_MAX_GAP_S", "30")),
+        animal_threshold=float(_env("ANIMAL_THRESHOLD", "0.2")),
         alert_threshold=float(_env("ALERT_THRESHOLD", "0.5")),
         person_threshold=float(_env("PERSON_THRESHOLD", "0.5")),
         uncertain_score=float(_env("UNCERTAIN_SCORE", "0.5")),
