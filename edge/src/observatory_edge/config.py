@@ -33,6 +33,12 @@ class Settings:
     worker_offline_s: int = 300
     backups_keep: int = 7
     ingest_stable_s: float = 2.0
+    camera_lat: float = 40.06
+    camera_lon: float = -74.41
+    ntfy_family_topic: str = ""
+    dashboard_url: str = ""
+    family_min_score: float = 0.8
+    weather_enabled: bool = False
     extra: dict = field(default_factory=dict)
 
     @property
@@ -90,4 +96,10 @@ def get_settings() -> Settings:
         worker_offline_s=int(_env("WORKER_OFFLINE_S", "300")),
         backups_keep=int(_env("BACKUPS_KEEP", "7")),
         ingest_stable_s=float(_env("INGEST_STABLE_S", "2")),
+        camera_lat=float(_env("CAMERA_LAT", "40.06")),
+        camera_lon=float(_env("CAMERA_LON", "-74.41")),
+        ntfy_family_topic=_env("NTFY_FAMILY_TOPIC", ""),
+        dashboard_url=_env("DASHBOARD_URL", ""),
+        family_min_score=float(_env("FAMILY_MIN_SCORE", "0.8")),
+        weather_enabled=_env("WEATHER_ENABLED", "false").lower() in ("1", "true", "yes"),
     )

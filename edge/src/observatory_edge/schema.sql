@@ -235,3 +235,41 @@ CREATE TABLE IF NOT EXISTS backup (
   verified INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
+
+-- Stories & insights (2026-11-21-stories-and-insights-design.md)
+CREATE TABLE IF NOT EXISTS species_info (
+  common_name TEXT PRIMARY KEY,
+  wiki_title TEXT,
+  extract TEXT,
+  page_url TEXT,
+  thumbnail_path TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',        -- pending | ok | missing | error
+  fetched_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS milestone (
+  id INTEGER PRIMARY KEY,
+  key TEXT NOT NULL UNIQUE,                       -- kind:species:night
+  kind TEXT NOT NULL,                             -- first_species | first_this_year | back_after | record_night | new_species_count
+  species TEXT,
+  encounter_id INTEGER REFERENCES encounter(id) ON DELETE SET NULL,
+  text TEXT NOT NULL,
+  night TEXT,
+  status TEXT NOT NULL DEFAULT 'active',          -- active | awaiting_confirmation | withdrawn
+  pushed_owner INTEGER NOT NULL DEFAULT 0,
+  pushed_family INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS digest (
+  week TEXT PRIMARY KEY,                          -- ISO week of the covered Monday, e.g. 2026-W47
+  payload_json TEXT NOT NULL,
+  sent_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS weather_daily (
+  date TEXT PRIMARY KEY,
+  precip_mm REAL,
+  tmin_c REAL,
+  tmax_c REAL
+);
