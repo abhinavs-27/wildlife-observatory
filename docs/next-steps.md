@@ -29,9 +29,10 @@ In priority order:
    ```
 
    Pair it with a daily `observatory backup-pull` agent.
-6. **Optional LLM analysis:** an Ollama provider behind an `LLMProvider` interface, used only for
+6. **Tune insight thresholds** once a month of real data exists. The minimums in `insights.py` are conservative defaults.
+7. **Optional LLM analysis:** an Ollama provider behind an `LLMProvider` interface, used only for
    behavior questions, fed only retrieved encounters, and required to cite IDs (design §7.6).
-7. **Tracker upgrade:** appearance features from SpeciesNet crops, for better tracks when
+8. **Tracker upgrade:** appearance features from SpeciesNet crops, for better tracks when
    several animals overlap.
-8. **Dashboard extras:** a confirm/reject control per detection, video playback with the frame
+9. **Dashboard extras:** a confirm/reject control per detection, video playback with the frame
    scrubber, and individual-animal tagging.

@@ -4,8 +4,10 @@ A backyard wildlife observatory for a **Reolink Argus Solar** camera and a **Ras
 Camera uploads are ingested on the Pi. **MegaDetector** finds animals, people and vehicles.
 Detections are linked into tracks and grouped into encounters, and you get a phone alert.
 **SpeciesNet** then identifies the species, on the Pi or on a Mac over Tailscale. A Next.js
-dashboard shows sightings with bounding boxes, activity by hour and day, manual corrections,
-and a search box that answers only from the database.
+dashboard shows each visit as a short replay, field-guide pages for every species (your photos
+plus Wikipedia info), a 24-hour activity clock, plain-English insights ("Raccoons usually arrive
+about 2 h after sunset"), milestones ("First bobcat ever!"), manual corrections, and a search box
+that answers only from the database. A weekly summary is pushed to you and, optionally, to family.
 
 > Status: MVP built and tested on a Mac against real public camera-trap images (LILA NACTI).
 > The Pi and camera hardware haven't arrived, so anything that depends on them is listed in
@@ -46,6 +48,7 @@ Ask questions from the terminal too: `DATA_DIR=../data uv run observatory ask "W
 | [Limitations](docs/limitations.md) | What's known not to work or is approximate |
 | [Untestable without hardware](docs/hardware-untestable.md) | What still needs the real camera and Pi |
 | [Next steps](docs/next-steps.md) | Recommended next development tasks |
+| [Stories & insights design](docs/superpowers/specs/2026-11-21-stories-and-insights-design.md) | Species pages, insights, milestones, digest |
 | [Design](docs/superpowers/specs/2026-11-21-wildlife-observatory-design.md) / [Plan](docs/superpowers/plans/2026-11-21-wildlife-observatory.md) | Source of truth |
 
 ## Repo layout

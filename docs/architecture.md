@@ -67,3 +67,18 @@ See `edge/src/observatory_edge/schema.sql`. Highlights:
   survive regrouping.
 - **Counts** are the most animals of one species visible at the same time in an encounter, never
   the number of frames.
+
+## Stories and insights (edge modules)
+
+| Module | What it does |
+|---|---|
+| `astro.py` | Computes sunrise, sunset and moon illumination locally (NOAA equations), plus `night_of()`, which assigns early-morning visits to the previous evening. |
+| `insights.py` | Rule-based insights: timing vs sunset, usual time, 30-day trend, moon, regular visitor, species seen together, quiet or busy week, and rain (if weather is enabled). Each rule has a minimum amount of data and reports `n`. |
+| `species_info.py` | Fetches and caches Wikipedia summaries and thumbnails. Only the species name is sent. Requests are paced, and bundled NJ facts are in `data/species_facts.json`. |
+| `milestones.py` | Firsts, firsts of the year, back-after-a-break, record nights and species counts. Evaluation is idempotent. Pushes go to the owner and family channels; family pushes need a confident ID or the owner's confirmation. |
+| `digest.py` | The Monday 08:00 summary of the previous week, stored in `digest` and pushed to both channels. |
+| `weather.py` | Optional daily weather history from Open-Meteo, using rounded coordinates. |
+
+Web: `/species/[name]` (field guide), `/digest` (this week + archive), an activity clock, a
+calendar heatmap, and `Replay`, which loops a visit's frames on the home page and adds a
+scrubber on the sighting page.

@@ -21,6 +21,13 @@
 - **Accuracy on the 64 samples is 89%.** Misses: 3 animals MegaDetector missed entirely
   (small or dark), 3 wild turkeys rolled up to "bird", and 1 skunk rolled up to "mammal".
   See [example-results.md](example-results.md).
+- **Insights need data.** With a handful of visits, most insight rules stay silent by design.
+  Trends and moon effects need weeks of real captures. On the sample data (photos from
+  2010–2017), the "back after more than a year" milestones are artifacts of that old dataset.
+- **Wikipedia rate-limits bursts.** Species info is fetched slowly in the background (a couple of
+  species per minute), so a brand-new install takes a few minutes to fill in every page.
+- **Bundled facts** (`species_facts.json`) are hand-written general natural history for about 40
+  species. They're worth a skim, and easy to correct.
 - **Not built yet:**
   - the reprocessing UI and API (the schema and per-media active-run pointers support it)
   - the retention and disk-quota cleanup (ingest does pause and FTP refuses at the disk floor)
