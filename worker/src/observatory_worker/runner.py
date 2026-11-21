@@ -81,7 +81,8 @@ class Runner:
         except StaleClaim:
             log.warning("job %s: claim went stale, dropping result", job["job_id"])
         except Exception as e:
-            retryable = isinstance(e, (httpx.TransportError, TimeoutError, OSError))
+            retryable = isinstance(e, (httpx.TransportError, TimeoutError, OSError)) or (
+                isinstance(e, httpx.HTTPStatusError) and e.response.status_code >= 500)
             log.exception("job %s failed", job["job_id"])
             try:
                 self.client.fail(job["job_id"], job["claim_token"],

@@ -67,7 +67,7 @@ class BackgroundLoops:
         send_pending_alerts(conn, self.settings, make_sender(self.settings))
 
     def tick_maintenance(self, conn) -> None:
-        requeue_expired(conn)
+        requeue_expired(conn, self.settings.max_attempts)
         tz = ZoneInfo(self.settings.camera_timezone)
         now = datetime.now(tz)
         if now.hour == 3 and self._last_backup_day != now.date():

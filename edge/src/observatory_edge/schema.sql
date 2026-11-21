@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS individual (
 );
 CREATE TABLE IF NOT EXISTS individual_track (
   individual_id INTEGER NOT NULL REFERENCES individual(id),
-  track_id INTEGER NOT NULL REFERENCES track(id),
+  track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
   PRIMARY KEY (individual_id, track_id)
 );
 

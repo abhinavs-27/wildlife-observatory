@@ -8,7 +8,7 @@ from datetime import timedelta
 
 from .config import Settings
 from .db import parse_iso, to_iso, tx, utcnow
-from .jobs import complete_job, enqueue
+from .jobs import complete_job, enqueue, verify_token
 from .runs import get_live_run
 from .taxonomy import display_name, is_uncertain, parse_label
 from .tracking import rebuild_window
@@ -20,6 +20,15 @@ class ResultError(ValueError):
     pass
 
 
+class StaleResult(Exception):
+    """The job was re-claimed (or finished) by someone else since this result's claim."""
+
+
+def _recheck(conn, job: dict, payload: dict) -> None:
+    if not verify_token(conn, job["id"], payload.get("claim_token", "")):
+        raise StaleResult(f"job {job['id']} claim token is stale")
+
+
 def apply_detect_result(conn: sqlite3.Connection, settings: Settings, job: dict,
                         payload: dict) -> dict:
     media = conn.execute("SELECT * FROM media WHERE id=?", (job["media_id"],)).fetchone()
@@ -27,6 +36,7 @@ def apply_detect_result(conn: sqlite3.Connection, settings: Settings, job: dict,
     frames = {r["id"]: r for r in conn.execute(
         "SELECT * FROM frame WHERE media_id=?", (media["id"],)).fetchall()}
     with tx(conn):
+        _recheck(conn, job, payload)
         run_id = get_live_run(conn, model.get("name", "megadetector"),
                               model.get("version", "unknown"), "detection")
         n_animals = 0
@@ -69,6 +79,7 @@ def apply_classify_result(conn: sqlite3.Connection, settings: Settings, job: dic
     geo = payload.get("geofence") or {}
     ensemble = payload.get("ensemble") or {}
     with tx(conn):
+        _recheck(conn, job, payload)
         run_id = get_live_run(conn, model.get("name", "speciesnet"),
                               model.get("version", "unknown"), "classification",
                               {"ensemble": ensemble})

@@ -11,7 +11,7 @@
 ## macOS (development)
 
 ```bash
-cd edge   && uv sync --extra dev && uv run pytest        # 47 tests
+cd edge   && uv sync --extra dev && uv run pytest        # 49 tests
 cd worker && uv sync --extra dev && uv run pytest        # 5 tests (fake models)
 
 export DATA_DIR=$PWD/data

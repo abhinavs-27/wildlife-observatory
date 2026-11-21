@@ -30,7 +30,7 @@ class Taxon:
         return "none"
 
 
-def parse_label(label: str) -> Taxon:
+def parse_label(label: str | None) -> Taxon:
     parts = (label or "").split(";")
     if len(parts) != 7:
         name = (label or "").strip().lower()

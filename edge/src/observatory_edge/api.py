@@ -20,7 +20,8 @@ from .db import connect, init_db, tx
 from .jobs import claim_job, fail_job, heartbeat, touch_worker, verify_token
 from .queries import (activity, get_encounter, health_details, list_encounters, list_media,
                       species_summary, stats)
-from .results import ResultError, apply_classify_result, apply_detect_result, classify_inputs
+from .results import (ResultError, StaleResult, apply_classify_result, apply_detect_result,
+                      classify_inputs)
 from .search import answer
 
 log = logging.getLogger("observatory.api")
@@ -113,7 +114,7 @@ def create_app(settings: Settings | None = None, start_background: bool = False)
     @app.post("/jobs/claim", dependencies=[Auth])
     def claim(req: ClaimReq, conn: Conn, response: Response):
         touch_worker(conn, req.worker_id, req.kinds, json.dumps(req.capabilities))
-        job = claim_job(conn, req.kinds, req.worker_id, settings.lease_s)
+        job = claim_job(conn, req.kinds, req.worker_id, settings.lease_s, settings.max_attempts)
         if not job:
             response.status_code = 204
             return None
@@ -156,10 +157,10 @@ def create_app(settings: Settings | None = None, start_background: bool = False)
         media_id = job["media_id"]
         out_dir = settings.frames_dir / str(media_id)
         out_dir.mkdir(parents=True, exist_ok=True)
+        payloads = [await up.read() for up in files]  # read before taking the DB write lock
         result = []
         with tx(conn):
-            for i, off, up in zip(idxs, offs, files):
-                data = await up.read()
+            for i, off, data in zip(idxs, offs, payloads):
                 rel = Path("frames") / str(media_id) / f"{i:05d}.jpg"
                 (settings.data_dir / rel).write_bytes(data)
                 conn.execute(
@@ -181,6 +182,10 @@ def create_app(settings: Settings | None = None, start_background: bool = False)
                 return apply_classify_result(conn, settings, job, payload)
         except ResultError as e:
             raise HTTPException(422, str(e)) from e
+        except StaleResult as e:
+            raise HTTPException(409, str(e)) from e
+        except (KeyError, TypeError, ValueError) as e:
+            raise HTTPException(422, f"malformed result payload: {e}") from e
         raise HTTPException(400, f"unsupported job kind {job['kind']}")
 
     @app.post("/jobs/{job_id}/fail", dependencies=[Auth])

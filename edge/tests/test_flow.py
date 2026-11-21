@@ -31,7 +31,8 @@ def detect(conn, settings, media_id, dets):
     job = claim_job(conn, ["detect"], "w1", 600)
     assert job["media_id"] == media_id
     frame = conn.execute("SELECT id FROM frame WHERE media_id=?", (media_id,)).fetchone()["id"]
-    payload = {"model": {"name": "MegaDetector", "version": "v5a.0.1"},
+    payload = {"claim_token": job["claim_token"],
+               "model": {"name": "MegaDetector", "version": "v5a.0.1"},
                "frames": [{"frame_id": frame, "detections": dets}]}
     return apply_detect_result(conn, settings, job, payload)
 
@@ -43,7 +44,8 @@ def classify(conn, settings, media_id, label, score=0.9):
     cls = [{"detection_id": d["detection_id"], "label": label, "score": score,
             "source": "classifier", "raw": [{"label": label, "score": score}]}
            for f in inputs for d in f["detections"]]
-    payload = {"model": {"name": "SpeciesNet", "version": "v4.0.3a"},
+    payload = {"claim_token": job["claim_token"],
+               "model": {"name": "SpeciesNet", "version": "v4.0.3a"},
                "geofence": {"country": "USA", "admin1_region": "NJ"},
                "classifications": cls}
     return apply_classify_result(conn, settings, job, payload)
@@ -201,5 +203,6 @@ def test_bad_frame_id_rejected(conn, settings, tmp_path):
     m = add_image(conn, settings, tmp_path)
     job = claim_job(conn, ["detect"], "w", 600)
     with pytest.raises(ResultError):
-        apply_detect_result(conn, settings, job, {"frames": [{"frame_id": 9999, "detections": []}]})
+        apply_detect_result(conn, settings, job, {"claim_token": job["claim_token"],
+                                                 "frames": [{"frame_id": 9999, "detections": []}]})
     assert conn.execute("SELECT COUNT(*) FROM detection").fetchone()[0] == 0

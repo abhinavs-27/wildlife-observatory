@@ -128,3 +128,34 @@ def test_health_and_dashboard_endpoints(client, media_id):
     assert client.get("/api/activity").json()["total"] == 0
     assert client.post("/api/corrections", json={"target_type": "encounter", "target_id": 99,
                                                  "action": "confirm"}).status_code == 422
+
+
+def test_crash_looping_job_eventually_fails(client, settings, media_id):
+    past = "2020-01-01T00:00:00.000000Z"
+    for _ in range(3):
+        job = claim(client).json()
+        c = connect(settings.db_path)
+        c.execute("UPDATE job SET lease_until=? WHERE id=?", (past, job["job_id"]))
+        c.close()
+    assert claim(client).status_code == 204  # third expiry marks it failed
+    c = connect(settings.db_path)
+    j = c.execute("SELECT status, attempts FROM job").fetchone()
+    assert j["status"] == "failed" and j["attempts"] == 3
+    assert c.execute("SELECT status FROM media").fetchone()[0] == "failed"
+    c.close()
+
+
+def test_result_after_job_completed_is_rejected(client, settings, media_id):
+    from observatory_edge.jobs import claim_job
+    from observatory_edge.results import StaleResult, apply_detect_result
+    c = connect(settings.db_path)
+    job = claim_job(c, ["detect"], "w", 600)
+    frame = c.execute("SELECT id FROM frame").fetchone()[0]
+    payload = {"claim_token": job["claim_token"],
+               "frames": [{"frame_id": frame, "detections": [
+                   {"category": "animal", "conf": 0.9, "bbox": [0, 0, .1, .1]}]}]}
+    apply_detect_result(c, settings, job, payload)
+    with pytest.raises(StaleResult):  # same result applied twice (e.g. retried request)
+        apply_detect_result(c, settings, job, payload)
+    assert c.execute("SELECT COUNT(*) FROM detection").fetchone()[0] == 1
+    c.close()

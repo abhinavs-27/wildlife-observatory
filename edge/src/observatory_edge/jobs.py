@@ -25,21 +25,37 @@ def enqueue(conn: sqlite3.Connection, kind: str, media_id: int, priority: int = 
         (kind, media_id, priority, now, now)).lastrowid
 
 
-def requeue_expired(conn: sqlite3.Connection) -> int:
+def requeue_expired(conn: sqlite3.Connection, max_attempts: int = 3) -> int:
+    """Expired leases count as a failed attempt, so a job that crashes its worker every time
+    (e.g. an OOM on a huge video) ends up `failed` instead of looping forever."""
     now = utcnow()
-    cur = conn.execute(
-        "UPDATE job SET status='queued', claim_token=NULL, worker_id=NULL, lease_until=NULL, "
-        "updated_at=? WHERE status='running' AND lease_until < ?", (now, now))
-    return cur.rowcount
+    expired = conn.execute(
+        "SELECT id, kind, media_id, attempts FROM job WHERE status='running' AND lease_until < ?",
+        (now,)).fetchall()
+    for j in expired:
+        attempts = j["attempts"] + 1
+        if attempts >= max_attempts:
+            conn.execute(
+                "UPDATE job SET status='failed', attempts=?, error='lease expired repeatedly "
+                "(worker crashed or hung)', claim_token=NULL, lease_until=NULL, updated_at=? "
+                "WHERE id=?", (attempts, now, j["id"]))
+            if j["kind"] == "detect":
+                conn.execute("UPDATE media SET status='failed', error='worker crashed or hung "
+                             "repeatedly on this file' WHERE id=?", (j["media_id"],))
+        else:
+            conn.execute(
+                "UPDATE job SET status='queued', attempts=?, claim_token=NULL, worker_id=NULL, "
+                "lease_until=NULL, updated_at=? WHERE id=?", (attempts, now, j["id"]))
+    return len(expired)
 
 
 def claim_job(conn: sqlite3.Connection, kinds: list[str], worker_id: str,
-              lease_s: int) -> dict | None:
+              lease_s: int, max_attempts: int = 3) -> dict | None:
     if not kinds:
         return None
     now = utcnow()
     with tx(conn):
-        requeue_expired(conn)
+        requeue_expired(conn, max_attempts)
         marks = ",".join("?" * len(kinds))
         row = conn.execute(
             f"SELECT id FROM job WHERE status='queued' AND kind IN ({marks}) "
@@ -72,7 +88,7 @@ def heartbeat(conn: sqlite3.Connection, job_id: int, token: str, lease_s: int) -
 def complete_job(conn: sqlite3.Connection, job_id: int, timings_json: str | None = None) -> None:
     conn.execute(
         "UPDATE job SET status='done', claim_token=NULL, lease_until=NULL, timings_json=?, "
-        "updated_at=? WHERE id=?", (timings_json, utcnow(), job_id))
+        "updated_at=? WHERE id=? AND status='running'", (timings_json, utcnow(), job_id))
 
 
 def fail_job(conn: sqlite3.Connection, job_id: int, token: str, error: str, retryable: bool,
