@@ -173,6 +173,17 @@ def species_summary(conn: sqlite3.Connection, include_pending: bool = False) -> 
     out = [dict(r) for r in rows]
     if not include_pending:
         out = [r for r in out if r["species"] != "pending"]
+    for r in out:
+        # Portrait: highest-confidence best detection among this species' encounters.
+        # encounter.best_detection_id already excludes media that contain a person.
+        best = conn.execute(
+            f"""SELECT d.frame_id, d.bbox_x, d.bbox_y, d.bbox_w, d.bbox_h
+                FROM encounter e JOIN detection d ON d.id = e.best_detection_id
+                WHERE e.status != 'rejected' AND {SPECIES_MATCH}
+                ORDER BY d.confidence DESC LIMIT 1""", (r["species"],)).fetchone()
+        r["best_frame_id"] = best["frame_id"] if best else None
+        r["best_bbox"] = [best["bbox_x"], best["bbox_y"], best["bbox_w"], best["bbox_h"]] \
+            if best else None
     return out
 
 

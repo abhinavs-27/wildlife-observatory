@@ -206,3 +206,24 @@ def test_bad_frame_id_rejected(conn, settings, tmp_path):
         apply_detect_result(conn, settings, job, {"claim_token": job["claim_token"],
                                                  "frames": [{"frame_id": 9999, "detections": []}]})
     assert conn.execute("SELECT COUNT(*) FROM detection").fetchone()[0] == 0
+
+
+def test_species_summary_has_portrait_frame(conn, settings, tmp_path):
+    from observatory_edge.queries import species_summary
+    m = add_image(conn, settings, tmp_path)
+    detect(conn, settings, m, [animal()])
+    classify(conn, settings, m, RACCOON)
+    frame = conn.execute("SELECT id FROM frame WHERE media_id=?", (m,)).fetchone()[0]
+    row = species_summary(conn)[0]
+    assert row["species"] == "northern raccoon"
+    assert row["best_frame_id"] == frame
+    assert row["best_bbox"] == [0.2, 0.3, 0.2, 0.2]
+
+
+def test_species_portrait_skips_person_media(conn, settings, tmp_path):
+    from observatory_edge.queries import species_summary
+    m = add_image(conn, settings, tmp_path)
+    detect(conn, settings, m, [animal(), {"category": "person", "conf": 0.9,
+                                          "bbox": [0.6, 0.1, 0.2, 0.6]}])
+    classify(conn, settings, m, RACCOON)
+    assert species_summary(conn)[0]["best_frame_id"] is None
