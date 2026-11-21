@@ -53,7 +53,7 @@ Within A, the owner picked my combination: take A's cooler "moonlit" palette plu
      - The species seen most recently gets an amber ring.
      - Tapping one filters to that species. Uncertain-only species get a dashed ring.
   5. **Recent visits:** a mixed-size grid (first tile 2×2), each tile with the species and time.
-- **Night lift:** dark photos (mean luminance below a threshold, measured in the browser on load)
+- **Night lift:** dark photos (mean luminance below 0.35, measured in the browser on load)
   get a display-only CSS brighten (`brightness(1.5) contrast(1.08)`). Originals are untouched.
 - **Other pages** (photos, sighting detail, activity, ask, system) adopt the new tokens, rounded
   photos and glow boxes. Layouts stay the same.

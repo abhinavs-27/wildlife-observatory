@@ -28,7 +28,7 @@ export default async function EncounterPage({ params }: { params: Promise<{ id: 
       <p>
         <Link href="/">All sightings</Link>
       </p>
-      <h1 style={{ marginBottom: 6 }}>{speciesLine(enc.species)}</h1>
+      <h1 className="title-cap" style={{ marginBottom: 6 }}>{speciesLine(enc.species)}</h1>
       <p className="muted" style={{ marginTop: 0 }}>
         {localTime(enc.start_at, { weekday: "long", year: "numeric" })}
         {enc.end_at !== enc.start_at ? ` to ${localTime(enc.end_at, { month: undefined, day: undefined })}` : ""} ·{" "}

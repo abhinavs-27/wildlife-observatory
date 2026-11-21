@@ -1,4 +1,5 @@
 import { imprint, pct } from "@/lib/format";
+import LitImage from "./LitImage";
 
 export type Box = {
   bbox: [number, number, number, number];
@@ -23,8 +24,7 @@ export default function Photo({ frameId, alt, boxes = [], capturedAt, species, c
   }
   return (
     <div className="photo">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/frames/${frameId}/file`} alt={alt} loading="lazy" />
+      <LitImage src={`/frames/${frameId}/file`} alt={alt} />
       {boxes.map((b, i) => (
         <div
           key={i}

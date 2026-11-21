@@ -96,6 +96,9 @@ export type SpeciesSummary = {
   any_uncertain: number;
   first_seen: string;
   last_seen: string;
+  last_encounter_id: number;
+  best_frame_id: number | null;
+  best_bbox: [number, number, number, number] | null;
 };
 
 export type Health = {

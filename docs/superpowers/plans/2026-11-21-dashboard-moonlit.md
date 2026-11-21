@@ -21,7 +21,7 @@ components for the home sections, and a client `LitImage` for night lift.
 - **Copy is templated from data only.** Uncertain → "Possibly a {species}". Pending →
   "Identifying…".
 - **"Last night"** = 18:00 yesterday to 07:00 today in `NEXT_PUBLIC_CAMERA_TIMEZONE`.
-- **Night lift is display-only.** Mean luminance below 0.28 → `brightness(1.5) contrast(1.08)`.
+- **Night lift is display-only.** Mean luminance below 0.35 → `brightness(1.5) contrast(1.08)`.
 - **Never show person-containing frames.** `best_frame_id` is already null for those.
 
 ## Review Focus
@@ -83,7 +83,7 @@ with `node --test` via `tsx`, or pure TS compiled by `npx tsc` check; keep them 
 **Consumes:** Task 1 fields and Task 2 helpers.
 
 - [ ] `LitImage` (client): renders `<img>`, measures mean luminance on load via a 32×32 canvas,
-  and adds class `lift` when it's below 0.28.
+  and adds class `lift` when it's below 0.35.
 - [ ] `LastNight`: fetches `/api/encounters?date_from&date_to` for the window. If empty, it
   fetches the latest encounter and says "No visitors last night. Most recent: {date}".
 - [ ] `Hero`, `Regulars` (amber ring on the most recent `last_seen`, dashed ring when
