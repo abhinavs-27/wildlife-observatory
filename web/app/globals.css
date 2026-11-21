@@ -49,6 +49,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-body);
@@ -109,6 +110,7 @@ h3 { font-size: 1.2rem; }
   font-size: 0.75rem; font-weight: 700; padding: 0 5px; white-space: nowrap; border-radius: 2px 2px 0 0;
 }
 .imprint {
+  min-width: 0;
   position: absolute; left: 0; right: 0; bottom: 0;
   display: flex; justify-content: space-between; gap: 12px;
   padding: 4px 10px; background: rgba(0, 0, 0, 0.72); color: #f4f4f0;
@@ -193,7 +195,7 @@ button:disabled { opacity: 0.6; cursor: wait; }
 }
 .bars .bar-slot:hover .tip, .bars .bar-slot:focus-visible .tip { display: block; }
 .axis { display: flex; gap: 2px; font-size: 0.75rem; color: var(--ink-3); margin-top: 4px; }
-.axis span { flex: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.axis span { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: visible; font-variant-numeric: tabular-nums; }
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 32px; }
 details.table-view { margin-top: 10px; font-size: 0.9rem; }
 details.table-view table { border-collapse: collapse; margin-top: 6px; }
@@ -217,7 +219,9 @@ table.plain th { color: var(--ink-3); font-weight: 600; }
 
 @media (max-width: 820px) {
   h1 { font-size: 2rem; }
-  .lead, .detail { grid-template-columns: 1fr; }
+  .lead, .detail { grid-template-columns: minmax(0, 1fr); }
+  .strip, .gallery { grid-template-columns: minmax(0, 1fr); }
+  .status-pill { font-size: 0.8rem; }
   .topbar { gap: 10px; }
   .nav { order: 3; width: 100%; }
 }
