@@ -33,9 +33,20 @@ def connect(db_path: Path | str) -> sqlite3.Connection:
     return conn
 
 
+MIGRATIONS = [
+    "ALTER TABLE alert ADD COLUMN link TEXT",
+]
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     sql = resources.files("observatory_edge").joinpath("schema.sql").read_text()
     conn.executescript(sql)
+    for stmt in MIGRATIONS:  # additive, idempotent column migrations
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e):
+                raise
 
 
 class tx:

@@ -271,6 +271,8 @@ def rebuild_window(conn: sqlite3.Connection, settings: Settings, device_id: int,
                 if other != enc_id:
                     conn.execute("UPDATE alert SET encounter_id=? WHERE encounter_id=?",
                                  (enc_id, other))
+                    conn.execute("UPDATE milestone SET encounter_id=? WHERE encounter_id=?",
+                                 (enc_id, other))
                     conn.execute("UPDATE correction SET target_id=? WHERE target_type='encounter' "
                                  "AND target_id=?", (enc_id, other))
             used.update(overlapping)

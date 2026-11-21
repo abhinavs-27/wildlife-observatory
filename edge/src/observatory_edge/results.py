@@ -107,6 +107,8 @@ def apply_classify_result(conn: sqlite3.Connection, settings: Settings, job: dic
                      (run_id, media["id"]))
         complete_job(conn, job["id"], json.dumps(payload.get("timings") or {}))
         encounters = rebuild_window(conn, settings, media["device_id"], media["captured_at"])
+        from .milestones import evaluate_milestones
+        evaluate_milestones(conn, settings)
     return {"classifications": n, "encounters": encounters}
 
 

@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS alert (
   id INTEGER PRIMARY KEY,
   encounter_id INTEGER REFERENCES encounter(id),
   kind TEXT NOT NULL DEFAULT 'encounter',        -- encounter | heartbeat | failure
-  channel TEXT NOT NULL DEFAULT 'ntfy',
+  channel TEXT NOT NULL DEFAULT 'owner',         -- owner | family
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   attach_frame_id INTEGER,

@@ -77,7 +77,7 @@ def test_burst_is_one_encounter_one_alert(conn, settings, tmp_path):
         detect(conn, settings, m, [animal(x=0.2 + i * 0.01)])
     assert len(encounters(conn)) == 1
     assert conn.execute("SELECT COUNT(*) FROM track").fetchone()[0] == 1
-    assert conn.execute("SELECT COUNT(*) FROM alert").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM alert WHERE kind='encounter'").fetchone()[0] == 1
 
 
 def test_multiple_animals_in_one_image_count_two(conn, settings, tmp_path):
@@ -93,7 +93,7 @@ def test_empty_image(conn, settings, tmp_path):
     detect(conn, settings, m, [])
     assert conn.execute("SELECT status FROM media WHERE id=?", (m,)).fetchone()[0] == "empty"
     assert encounters(conn) == []
-    assert conn.execute("SELECT COUNT(*) FROM alert").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM alert WHERE kind='encounter'").fetchone()[0] == 0
     assert conn.execute("SELECT COUNT(*) FROM job WHERE kind='classify'").fetchone()[0] == 0
 
 
@@ -126,14 +126,14 @@ def test_suppressed_capture_never_alerts(conn, settings, tmp_path):
     m = add_image(conn, settings, tmp_path, live=False)
     detect(conn, settings, m, [animal()])
     assert len(encounters(conn)) == 1
-    assert conn.execute("SELECT COUNT(*) FROM alert").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM alert WHERE kind='encounter'").fetchone()[0] == 0
 
 
 def test_low_confidence_animal_does_not_alert(conn, settings, tmp_path):
     m = add_image(conn, settings, tmp_path)
     detect(conn, settings, m, [animal(conf=0.3)])
     assert len(encounters(conn)) == 1
-    assert conn.execute("SELECT COUNT(*) FROM alert").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM alert WHERE kind='encounter'").fetchone()[0] == 0
 
 
 def test_late_classification_updates_species_without_second_alert(conn, settings, tmp_path):
@@ -146,7 +146,7 @@ def test_late_classification_updates_species_without_second_alert(conn, settings
     sp = json.loads(encs[0]["species_json"])
     assert sp[0]["species"] == "northern raccoon" and sp[0]["uncertain"] is False
     assert encs[0]["status"] == "classified"
-    assert conn.execute("SELECT COUNT(*) FROM alert").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM alert WHERE kind='encounter'").fetchone()[0] == 1
     c = conn.execute("SELECT * FROM classification").fetchone()
     assert c["taxon_genus"] == "procyon" and c["rollup_level"] == "species"
 

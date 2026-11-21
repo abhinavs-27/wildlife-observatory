@@ -57,4 +57,6 @@ def add_correction(conn: sqlite3.Connection, settings: Settings, target_type: st
             conn.execute(f"UPDATE {target_type} SET verification_status=? WHERE id=?",
                          (STATUS_FOR[action], target_id))
         rebuild_window(conn, settings, device_id, around)
+        from .milestones import evaluate_milestones
+        evaluate_milestones(conn, settings)  # confirm/relabel can release family pushes
     return cid
