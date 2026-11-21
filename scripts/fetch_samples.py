@@ -90,8 +90,28 @@ def main() -> int:
                              "study": r["study"], "source": IMG + r["filename"]})
             print(f"{sp:24s} {dest.name}")
 
+    # NACTI images carry no capture time in EXIF, so ingestion would fall back to the download
+    # time and lump every sample into one "visit". For demo/test data only, we stamp each file's
+    # mtime with a SYNTHETIC time spread over the last 30 days (recorded in the manifest as
+    # `synthetic_time`). Real camera uploads use their own EXIF/container timestamps.
+    import os
+    import time as _time
+    now = _time.time()
+    for row in manifest:
+        p = args.out / row["path"]
+        nocturnal = row["label"] in {"raccoon", "striped skunk", "virginia opossum", "red fox",
+                                     "gray fox", "coyote", "bobcat"}
+        day = rng.randint(1, 30)
+        hour = rng.choice([21, 22, 23, 0, 1, 2, 3, 4, 5]) if nocturnal else rng.randint(6, 19)
+        ts = now - day * 86400
+        lt = _time.localtime(ts)
+        ts = _time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, hour, rng.randint(0, 59),
+                           rng.randint(0, 59), 0, 0, -1))
+        os.utime(p, (ts, ts))
+        row["synthetic_time"] = _time.strftime("%Y-%m-%dT%H:%M:%S", _time.localtime(ts))
+
     with open(args.out / "manifest.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["path", "label", "study", "source"])
+        w = csv.DictWriter(f, fieldnames=["path", "label", "study", "source", "synthetic_time"])
         w.writeheader()
         w.writerows(manifest)
 
@@ -117,6 +137,11 @@ def main() -> int:
                             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "10", str(clip)],
                            check=True)
             shutil.rmtree(tmp)
+            import os
+            import time as _time
+            lt = _time.localtime(_time.time() - 2 * 86400)
+            ts = _time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 22, 15, 0, 0, 0, -1))
+            os.utime(clip, (ts, ts))  # synthetic demo time (see note above)
             print(f"clip: {clip} (4 real raccoon images from NACTI location {burst[0]['location']})")
     print(f"{len(manifest)} images; manifest at {args.out / 'manifest.csv'}")
     return 0

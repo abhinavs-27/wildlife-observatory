@@ -17,6 +17,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="comma-separated: detect,classify")
     ap.add_argument("--worker-id", default=os.environ.get("WORKER_ID", f"{socket.gethostname()}"))
     ap.add_argument("--model", default=os.environ.get("SPECIESNET_MODEL"))
+    ap.add_argument("--device", default=os.environ.get("TORCH_DEVICE") or None,
+                    help="force a torch device, e.g. cpu (default: cuda > mps > cpu)")
     ap.add_argument("--threads", type=int, default=int(os.environ.get("TORCH_THREADS", "0")),
                     help="cap torch CPU threads (0 = torch default)")
     ap.add_argument("--video-fps", type=float, default=float(os.environ.get("VIDEO_FPS", "1")))
@@ -36,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     from .runner import Runner
 
     models = SpeciesNetModels(args.model, load_detector="detect" in kinds,
-                              load_classifier="classify" in kinds)
+                              load_classifier="classify" in kinds, device=args.device)
     logging.info("models loaded on %s: %s", getattr(models, "device", "?"), models.load_times)
     runner = Runner(EdgeClient(args.edge_url, args.token), models, kinds, args.worker_id,
                     args.video_fps, args.video_max_frames)

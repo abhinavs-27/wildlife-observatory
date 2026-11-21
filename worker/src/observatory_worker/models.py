@@ -28,7 +28,7 @@ class SpeciesNetModels:
     """In-process SpeciesNet 5.x: SpeciesNetDetector, SpeciesNetClassifier, SpeciesNetEnsemble."""
 
     def __init__(self, model_name: str | None = None, load_detector: bool = True,
-                 load_classifier: bool = True):
+                 load_classifier: bool = True, device: str | None = None):
         import speciesnet
         from speciesnet.classifier import SpeciesNetClassifier
         from speciesnet.detector import SpeciesNetDetector
@@ -43,11 +43,14 @@ class SpeciesNetModels:
         if load_detector:
             t = time.perf_counter()
             self.detector = SpeciesNetDetector(self.model_name)
+            if device and device != self.detector.device:  # e.g. force CPU on a Mac
+                self.detector.model = self.detector.model.to(device)
+                self.detector.device = device
             self.load_times["detector"] = time.perf_counter() - t
             self.device = self.detector.device
         if load_classifier:
             t = time.perf_counter()
-            self.classifier = SpeciesNetClassifier(self.model_name)
+            self.classifier = SpeciesNetClassifier(self.model_name, device=device)
             self.load_times["classifier"] = time.perf_counter() - t
             t = time.perf_counter()
             self.ensemble = SpeciesNetEnsemble(self.model_name, geofence=True)
