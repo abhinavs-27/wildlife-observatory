@@ -18,8 +18,9 @@ from .config import Settings, get_settings
 from .corrections import CorrectionError, add_correction
 from .db import connect, init_db, tx
 from .jobs import claim_job, fail_job, heartbeat, touch_worker, verify_token
-from .queries import (activity, get_encounter, health_details, list_encounters, list_media,
-                      species_summary, stats)
+from .insights import compute_insights
+from .queries import (activity, encounter_frames, get_encounter, health_details, list_encounters,
+                      list_media, species_detail, species_summary, stats)
 from .results import (ResultError, StaleResult, apply_classify_result, apply_detect_result,
                       classify_inputs)
 from .search import answer
@@ -250,6 +251,37 @@ def create_app(settings: Settings | None = None, start_background: bool = False)
         if not enc:
             raise HTTPException(404, "encounter not found")
         return enc
+
+    @app.get("/api/encounters/{encounter_id}/frames")
+    def api_encounter_frames(encounter_id: int, conn: Conn):
+        if not conn.execute("SELECT 1 FROM encounter WHERE id=?", (encounter_id,)).fetchone():
+            raise HTTPException(404, "encounter not found")
+        return encounter_frames(conn, encounter_id)
+
+    @app.get("/api/insights")
+    def api_insights(conn: Conn, species: str | None = None):
+        return [i.to_dict() for i in compute_insights(conn, settings, species=species, use_cache=True)]
+
+    @app.get("/api/species/{name}")
+    def api_species_detail(name: str, conn: Conn):
+        d = species_detail(conn, settings, name)
+        if not d:
+            raise HTTPException(404, "no visits from that species")
+        return d
+
+    @app.get("/api/species/{name}/image")
+    def api_species_image(name: str, conn: Conn):
+        r = conn.execute("SELECT thumbnail_path FROM species_info WHERE common_name=?",
+                         (name,)).fetchone()
+        if not r or not r["thumbnail_path"]:
+            raise HTTPException(404, "no image cached")
+        return _file(r["thumbnail_path"])
+
+    @app.get("/api/milestones")
+    def api_milestones(conn: Conn, limit: int = 20):
+        return [dict(r) for r in conn.execute(
+            "SELECT id, kind, species, encounter_id, text, night, status, created_at FROM milestone "
+            "WHERE status != 'withdrawn' ORDER BY night DESC, id DESC LIMIT ?", (min(limit, 200),))]
 
     @app.get("/api/media")
     def api_media(conn: Conn, status: str | None = None, kind: str | None = None,

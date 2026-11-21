@@ -189,20 +189,90 @@ def species_summary(conn: sqlite3.Connection, include_pending: bool = False) -> 
 
 def activity(conn: sqlite3.Connection, settings: Settings, species: str | None = None,
              species_any: list[str] | None = None) -> dict:
+    from .astro import sun_times
     encs = list_encounters(conn, species=species, species_any=species_any, limit=100000)
     tz = ZoneInfo(settings.camera_timezone)
     by_hour, by_day, by_weekday = Counter(), Counter(), Counter()
+    points = []
     for e in encs:
         local = parse_iso(e["start_at"]).astimezone(tz)
         by_hour[local.hour] += 1
         by_day[local.date().isoformat()] += 1
         by_weekday[local.strftime("%a")] += 1
+        top = e["species"][0] if e["species"] else {"species": "pending", "uncertain": False}
+        points.append({"encounter_id": e["id"], "minute_of_day": local.hour * 60 + local.minute,
+                       "date": local.date().isoformat(), "species": top["species"],
+                       "uncertain": bool(top.get("uncertain"))})
+    dates = sorted(p["date"] for p in points)
+    from datetime import date as _date
+    mid = _date.fromisoformat(dates[len(dates) // 2]) if dates else parse_iso(utcnow()).astimezone(tz).date()
+    rise, sset = sun_times(mid, settings.camera_lat, settings.camera_lon, settings.camera_timezone)
     return {"timezone": settings.camera_timezone, "total": len(encs),
             "by_hour": [{"hour": h, "count": by_hour.get(h, 0)} for h in range(24)],
             "by_day": [{"day": d, "count": c} for d, c in sorted(by_day.items())],
             "by_weekday": [{"weekday": w, "count": by_weekday.get(w, 0)}
                            for w in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]],
-            "encounter_ids": [e["id"] for e in encs[:50]]}
+            "encounter_ids": [e["id"] for e in encs[:50]],
+            "points": points,
+            "night": {"date": mid.isoformat(), "sunset_min": sset.hour * 60 + sset.minute,
+                      "sunrise_min": rise.hour * 60 + rise.minute}}
+
+
+def encounter_frames(conn: sqlite3.Connection, encounter_id: int) -> list[dict]:
+    """Frames of an encounter in time order, for the replay player."""
+    rows = conn.execute(
+        """SELECT f.id frame_id, f.time_offset_s, m.captured_at, m.has_person, m.id media_id
+           FROM encounter_media em JOIN media m ON m.id = em.media_id
+           JOIN frame f ON f.media_id = m.id
+           WHERE em.encounter_id = ? AND EXISTS (
+             SELECT 1 FROM detection d WHERE d.frame_id = f.id AND d.run_id = m.active_detection_run_id
+             AND d.category = 'animal')
+           ORDER BY m.captured_at, f.time_offset_s""", (encounter_id,)).fetchall()
+    out = []
+    for r in rows:
+        boxes = [{"bbox": [d["bbox_x"], d["bbox_y"], d["bbox_w"], d["bbox_h"]], "category": d["category"],
+                  "confidence": d["confidence"]}
+                 for d in conn.execute(
+                     "SELECT d.* FROM detection d JOIN media m ON m.id=d.media_id WHERE d.frame_id=? "
+                     "AND d.run_id=m.active_detection_run_id AND d.confidence >= 0.2", (r["frame_id"],))]
+        t = parse_iso(r["captured_at"]).timestamp() + (r["time_offset_s"] or 0)
+        out.append({"frame_id": r["frame_id"], "media_id": r["media_id"], "t": t,
+                    "has_person": bool(r["has_person"]), "boxes": boxes})
+    return out
+
+
+def species_detail(conn: sqlite3.Connection, settings: Settings, name: str) -> dict | None:
+    from datetime import timedelta
+    from .insights import compute_insights, usual_time_label
+    from .species_info import get_species_info
+    summary = next((s for s in species_summary(conn) if s["species"] == name), None)
+    if not summary:
+        return None
+    tz = ZoneInfo(settings.camera_timezone)
+    encs = list_encounters(conn, species=name, limit=100000)
+    counts = Counter(parse_iso(e["start_at"]).astimezone(tz).date() for e in encs)
+    end = max(counts) if counts else parse_iso(utcnow()).astimezone(tz).date()
+    start = end - timedelta(days=181)
+    calendar = []
+    d = start
+    while d <= end:
+        calendar.append({"date": d.isoformat(), "count": counts.get(d, 0)})
+        d += timedelta(days=1)
+    milestones = [dict(r) for r in conn.execute(
+        "SELECT id, kind, text, night, encounter_id, status, created_at FROM milestone "
+        "WHERE species=? AND status != 'withdrawn' ORDER BY night DESC", (name,))]
+    info = get_species_info(conn, settings, name)
+    return {
+        **summary,
+        "info": info,
+        "usual_time": usual_time_label(conn, settings, name),
+        "calendar": calendar,
+        "calendar_total_in_range": sum(c["count"] for c in calendar),
+        "gallery": encs[:24],
+        "insights": [i.to_dict() for i in compute_insights(conn, settings, species=name)],
+        "milestones": milestones,
+        "rolled_up": info.get("scientific_name") is None,
+    }
 
 
 def stats(conn: sqlite3.Connection) -> dict:
