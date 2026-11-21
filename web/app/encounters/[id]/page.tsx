@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import CorrectionForm from "@/components/CorrectionForm";
 import Offline from "@/components/Offline";
 import Photo from "@/components/Photo";
-import { edge, EdgeUnavailable, type EncounterDetail } from "@/lib/api";
+import Replay from "@/components/Replay";
+import { edge, EdgeUnavailable, type EncounterDetail, type ReplayFrame } from "@/lib/api";
 import { localTime, pct, speciesLine } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +12,12 @@ export const dynamic = "force-dynamic";
 export default async function EncounterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let enc: EncounterDetail;
+  let frames: ReplayFrame[] = [];
   try {
-    enc = await edge<EncounterDetail>(`/api/encounters/${id}`);
+    [enc, frames] = await Promise.all([
+      edge<EncounterDetail>(`/api/encounters/${id}`),
+      edge<ReplayFrame[]>(`/api/encounters/${id}/frames`),
+    ]);
   } catch (e) {
     if (e instanceof Error && e.message === "not-found") notFound();
     return <Offline message={e instanceof EdgeUnavailable ? e.message : undefined} />;
@@ -40,6 +45,14 @@ export default async function EncounterPage({ params }: { params: Promise<{ id: 
 
       <div className="detail">
         <div className="frames">
+          {frames.length > 1 ? (
+            <figure style={{ margin: 0 }}>
+              <Replay frames={frames} alt={speciesLine(enc.species)} controls className="player" />
+              <figcaption className="muted" style={{ fontSize: "0.85rem", paddingTop: 4 }}>
+                The whole visit, {frames.length} frames in order. Tap to pause.
+              </figcaption>
+            </figure>
+          ) : null}
           {enc.media.map((m) =>
             m.frames
               .filter((f) => m.detections.some((d) => d.frame_id === f.id) || m.frames.length === 1)
@@ -82,7 +95,13 @@ export default async function EncounterPage({ params }: { params: Promise<{ id: 
             {animalDets.map((d) => (
               <div key={d.id} style={{ marginTop: 12 }}>
                 <div>
-                  <b>{d.classification?.common_name ?? "Not identified yet"}</b>{" "}
+                  {d.classification?.common_name ? (
+                    <Link href={`/species/${encodeURIComponent(d.classification.common_name)}`}>
+                      <b>{d.classification.common_name}</b>
+                    </Link>
+                  ) : (
+                    <b>Not identified yet</b>
+                  )}{" "}
                   {d.classification ? (
                     d.classification.is_uncertain ? (
                       <span className="badge warn">Uncertain</span>

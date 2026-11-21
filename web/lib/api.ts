@@ -146,3 +146,81 @@ export function qs(params: Record<string, string | undefined | null>): string {
   const s = p.toString();
   return s ? `?${s}` : "";
 }
+
+export type Insight = {
+  id: string;
+  kind: string;
+  species: string | null;
+  text: string;
+  detail: string;
+  n: number;
+  encounter_ids: number[];
+  strength: number;
+};
+
+export type Milestone = {
+  id: number;
+  kind: string;
+  species: string | null;
+  encounter_id: number | null;
+  text: string;
+  night: string;
+  status: string;
+  created_at: string;
+};
+
+export type ReplayFrame = {
+  frame_id: number;
+  media_id: number;
+  t: number;
+  has_person: boolean;
+  boxes: { bbox: [number, number, number, number]; category: string; confidence: number }[];
+};
+
+export type ActivityPoint = { encounter_id: number; minute_of_day: number; date: string; species: string; uncertain: boolean };
+
+export type ActivityFull = Activity & {
+  points: ActivityPoint[];
+  night: { date: string; sunset_min: number; sunrise_min: number };
+};
+
+export type SpeciesInfo = {
+  common_name: string;
+  status: string;
+  wiki_title?: string | null;
+  extract?: string | null;
+  page_url?: string | null;
+  has_image: boolean;
+  scientific_name: string | null;
+  facts: { activity: string; size: string; diet: string; nj_status: string } | null;
+};
+
+export type SpeciesDetail = SpeciesSummary & {
+  info: SpeciesInfo;
+  usual_time: string | null;
+  calendar: { date: string; count: number }[];
+  calendar_total_in_range: number;
+  gallery: EncounterSummary[];
+  insights: Insight[];
+  milestones: Milestone[];
+  rolled_up: boolean;
+};
+
+export type Digest = {
+  week: string;
+  start: string;
+  end: string;
+  visits: number;
+  species: number;
+  species_counts: [string, number][];
+  new_species: string[];
+  best_encounter_id: number | null;
+  best_frame_id: number | null;
+  best_species: string | null;
+  headline: string;
+  highlights: string[];
+  sent_at?: string | null;
+  in_progress?: boolean;
+};
+
+export type DigestSummary = { week: string; sent_at: string; headline: string; visits: number; species: number; best_frame_id: number | null; start: string; end: string };

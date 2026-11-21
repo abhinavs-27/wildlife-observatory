@@ -1,7 +1,8 @@
 import Link from "next/link";
+import ActivityClock from "@/components/ActivityClock";
 import BarChart from "@/components/BarChart";
 import Offline from "@/components/Offline";
-import { edge, EdgeUnavailable, qs, type Activity, type SpeciesSummary } from "@/lib/api";
+import { edge, EdgeUnavailable, qs, type ActivityFull, type SpeciesSummary } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,11 @@ function hourLabel(h: number) {
 
 export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ species?: string }> }) {
   const { species } = await searchParams;
-  let act: Activity;
+  let act: ActivityFull;
   let summary: SpeciesSummary[];
   try {
     [act, summary] = await Promise.all([
-      edge<Activity>(`/api/activity${qs({ species })}`),
+      edge<ActivityFull>(`/api/activity${qs({ species })}`),
       edge<SpeciesSummary[]>("/api/species"),
     ]);
   } catch (e) {
@@ -44,11 +45,14 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
         <div className="notice">No sightings to chart yet.</div>
       ) : (
         <div className="grid-2">
-          <BarChart
-            title="By hour of day"
-            tickEvery={3}
-            data={act.by_hour.map((h) => ({ key: String(h.hour), label: hourLabel(h.hour), count: h.count }))}
-          />
+          <div className="clock-row">
+            <ActivityClock points={act.points} night={act.night} single={Boolean(species)} title={species ? `When ${species} visit` : "When visits happen"} />
+            <BarChart
+              title="By hour of day"
+              tickEvery={3}
+              data={act.by_hour.map((h) => ({ key: String(h.hour), label: hourLabel(h.hour), count: h.count }))}
+            />
+          </div>
           <BarChart
             title="By day"
             tickEvery={Math.max(1, Math.ceil(act.by_day.length / 10))}

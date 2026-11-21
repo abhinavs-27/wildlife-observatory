@@ -59,6 +59,16 @@ def _cap(s: str) -> str:
     return s[:1].upper() + s[1:]
 
 
+def _gap(days: int) -> str:
+    if days > 365:
+        return "more than a year"
+    if days >= 60:
+        return f"{round(days / 30.4)} months"
+    if days >= 21:
+        return f"{round(days / 7)} weeks"
+    return f"{days} days"
+
+
 def _compute(visits: list[V], tz: str) -> dict[str, dict]:
     """Return {key: milestone dict} for everything the current data supports."""
     found: dict[str, dict] = {}
@@ -86,7 +96,7 @@ def _compute(visits: list[V], tz: str) -> dict[str, dict]:
             if gap >= BACK_AFTER_DAYS:
                 found[f"back_after:{v.species}:{night}"] = dict(
                     kind="back_after", species=v.species, visit=v, night=night,
-                    text=f"The {v.species} is back after {gap} days away.")
+                    text=f"The {v.species} is back after {_gap(gap)} away.")
             if (v.species, night.year) not in first_year:
                 first_year.add((v.species, night.year))
                 found[f"first_this_year:{v.species}:{night.year}"] = dict(

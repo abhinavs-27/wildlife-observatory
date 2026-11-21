@@ -86,7 +86,7 @@ class BackgroundLoops:
         except Exception:
             log.exception("weekly digest failed")
         try:  # cheap when nothing is pending; fetches names only
-            refresh_species_info(conn, self.settings, limit=5)
+            refresh_species_info(conn, self.settings, limit=2)
         except Exception:
             log.exception("species info refresh failed")
         if now.hour == 2 and self._last_nightly_day != now.date():

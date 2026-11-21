@@ -1,9 +1,10 @@
 import Link from "next/link";
-import type { EncounterSummary, SpeciesSummary } from "@/lib/api";
+import type { EncounterSummary, ReplayFrame, SpeciesSummary } from "@/lib/api";
 import { localTime, pct } from "@/lib/format";
 import { heroTitle, moonPhase } from "@/lib/night";
 import { portraitStyle } from "@/lib/portrait";
 import LitImage, { Portrait } from "./LitImage";
+import Replay from "./Replay";
 
 const frameSrc = (id: number | null) => (id == null ? null : `/frames/${id}/file`);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -45,26 +46,19 @@ export function LastNight({ visits, fallback, now }: { visits: EncounterSummary[
   );
 }
 
-export function Hero({ e }: { e: EncounterSummary }) {
+export function Hero({ e, frames = [] }: { e: EncounterSummary; frames?: ReplayFrame[] }) {
   const s = e.species[0];
   const title = heroTitle(e.species);
   const when = localTime(e.start_at, { weekday: "long", month: undefined, day: undefined });
   const sure = s && s.species !== "pending" && s.confidence ? ` · ${pct(s.confidence)} sure` : "";
   return (
     <section className="hero" aria-label="Latest visitor">
-      {e.best_frame_id != null ? (
-        <LitImage src={`/frames/${e.best_frame_id}/file`} alt={title} loading="eager" />
+      {e.best_frame_id != null || frames.some((f) => !f.has_person) ? (
+        <Replay frames={frames} alt={title} hidePeople fallbackFrameId={e.best_frame_id} fallbackBox={e.best_bbox} className="fill" />
       ) : (
         <div className="withheld">Photo withheld: a person is in the frame</div>
       )}
       <div className="shade" aria-hidden />
-      {e.best_bbox ? (
-        <div
-          className="glowbox"
-          aria-hidden
-          style={{ left: `${e.best_bbox[0] * 100}%`, top: `${e.best_bbox[1] * 100}%`, width: `${e.best_bbox[2] * 100}%`, height: `${e.best_bbox[3] * 100}%` }}
-        />
-      ) : null}
       <span className="stamp">{localTime(e.start_at, { second: "2-digit" })} · {e.device}</span>
       <div className="cap">
         <div>
@@ -99,7 +93,7 @@ export function Regulars({ species, active }: { species: SpeciesSummary[]; activ
     <ul className="regulars">
       {species.map((s) => (
         <li key={s.species}>
-          <Link href={active === s.species ? "/" : `/?species=${encodeURIComponent(s.species)}`} aria-current={active === s.species}>
+          <Link href={`/species/${encodeURIComponent(s.species)}`} aria-current={active === s.species}>
             {s.best_frame_id != null && s.best_bbox ? (
               <Portrait
                 src={frameSrc(s.best_frame_id)}

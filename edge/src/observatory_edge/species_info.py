@@ -10,6 +10,7 @@ import json
 import logging
 import re
 import sqlite3
+import time
 from functools import lru_cache
 from importlib import resources
 from urllib.parse import quote
@@ -131,7 +132,8 @@ def fetch_species_info(conn: sqlite3.Connection, settings: Settings, common_name
 
 
 def refresh_species_info(conn: sqlite3.Connection, settings: Settings,
-                         client: httpx.Client | None = None, limit: int = 20) -> int:
+                         client: httpx.Client | None = None, limit: int = 20,
+                         pause_s: float = 2.0) -> int:
     """Fetch info for species we don't have yet, that failed, or that are stale."""
     names = [r[0] for r in conn.execute(
         "SELECT DISTINCT json_extract(j.value,'$.species') FROM encounter e, "
@@ -149,9 +151,11 @@ def refresh_species_info(conn: sqlite3.Connection, settings: Settings,
     client = client or httpx.Client()
     try:
         done = 0
-        for n in todo[:limit]:
+        for i, n in enumerate(todo[:limit]):
+            if i and pause_s:
+                time.sleep(pause_s)  # be polite to Wikipedia (it rate-limits bursts with HTTP 429)
             if fetch_species_info(conn, settings, n, client) == "error":
-                break  # probably offline; try again later
+                break  # offline or rate-limited; the background loop retries later
             done += 1
         return done
     finally:

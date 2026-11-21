@@ -65,7 +65,7 @@ def test_network_error_records_error_without_content(conn, settings, tmp_path):
     def boom(req):
         raise httpx.ConnectError("offline")
     client = httpx.Client(transport=httpx.MockTransport(boom))
-    assert refresh_species_info(conn, settings, client) == 0
+    assert refresh_species_info(conn, settings, client, pause_s=0) == 0
     info = get_species_info(conn, settings, "northern raccoon")
     assert info["status"] == "error" and not info.get("extract")
 
@@ -74,6 +74,6 @@ def test_refresh_skips_fresh_entries(conn, settings, tmp_path):
     seed(conn, settings, tmp_path)
     calls = []
     client = httpx.Client(transport=wiki_transport({"Procyon_lotor": page("Raccoon")}, calls))
-    assert refresh_species_info(conn, settings, client) == 1
+    assert refresh_species_info(conn, settings, client, pause_s=0) == 1
     n = len(calls)
-    assert refresh_species_info(conn, settings, client) == 0 and len(calls) == n
+    assert refresh_species_info(conn, settings, client, pause_s=0) == 0 and len(calls) == n

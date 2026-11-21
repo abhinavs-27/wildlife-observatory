@@ -67,7 +67,7 @@ def test_back_after_two_weeks(conn, settings, tmp_path):
     visit(conn, settings, tmp_path, datetime(2024, 6, 1, 22, 0), live=False)
     visit(conn, settings, tmp_path, datetime(2024, 6, 17, 22, 0))
     back = milestones(conn, "back_after")
-    assert back and "back after 16 days" in back[0]["text"]
+    assert back and "back after 16 days away" in back[0]["text"]
 
 
 def test_record_night(conn, settings, tmp_path):
@@ -98,3 +98,8 @@ def test_family_alert_skipped_without_family_topic(conn, settings, tmp_path):
     stats = send_pending_alerts(conn, settings, {"owner": Fake(), "family": None})
     assert stats["skipped"] >= 1
     assert conn.execute("SELECT status FROM alert WHERE channel='family'").fetchone()[0] == "skipped"
+
+
+def test_gap_wording():
+    from observatory_edge.milestones import _gap
+    assert [_gap(16), _gap(30), _gap(93), _gap(3918)] == ["16 days", "4 weeks", "3 months", "more than a year"]

@@ -284,3 +284,85 @@ img.lift, i.lift { filter: brightness(1.5) contrast(1.08) saturate(1.08); }
 @media (prefers-reduced-motion: reduce) { .bento .tile img { transition: none; } }
 
 .title-cap::first-letter { text-transform: uppercase; }
+
+/* ---------- Replay ---------- */
+.replay { position: relative; overflow: hidden; background: #000; }
+.replay.fill { position: absolute; inset: 0; }
+.replay.player { aspect-ratio: 4 / 3; border-radius: var(--radius-photo); box-shadow: 0 14px 36px -18px rgba(0,0,0,.8); }
+.replay-frame { position: absolute; inset: 0; opacity: 0; transition: opacity .55s ease; }
+.replay-frame.on { opacity: 1; }
+.replay-frame img { width: 100%; height: 100%; object-fit: cover; }
+.replay.player .replay-frame img { object-fit: contain; }
+.replay.single .replay-frame.on img { animation: slowzoom 14s ease-in-out infinite alternate; }
+@keyframes slowzoom { from { transform: scale(1); } to { transform: scale(1.06); } }
+.replay .glowbox { position: absolute; border: 2px solid var(--amber); border-radius: 5px; box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 0 22px rgba(242,183,5,.4); }
+.replay.player .glowbox { display: none; } /* contain-fit makes box math unreliable; boxes shown per photo below */
+.replay-dots { position: absolute; right: 16px; top: 16px; display: flex; gap: 5px; z-index: 2; }
+.replay-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.4); }
+.replay-dots i.on { background: var(--amber); }
+.scrubber { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: linear-gradient(transparent, rgba(0,0,0,.8)); z-index: 2; }
+.scrubber input[type="range"] { flex: 1; accent-color: var(--amber); }
+.scrubber button { padding: 4px 12px; font-size: .85rem; }
+@media (prefers-reduced-motion: reduce) { .replay-frame { transition: none; } .replay.single .replay-frame.on img { animation: none; } }
+
+/* ---------- Highlights ---------- */
+.highlights { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.highlights a, .highlights li > div { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--rule); text-decoration: none; height: 100%; }
+.highlights a:hover { border-color: var(--moss); }
+.hl-icon { font-size: 1.35rem; line-height: 1.2; }
+.hl-text { display: flex; flex-direction: column; gap: 3px; }
+.hl-text small { color: var(--ink-3); font-size: .8rem; }
+
+/* ---------- Activity clock ---------- */
+.clock-face { fill: var(--surface); stroke: var(--rule); }
+.clock-night { fill: #18233a; opacity: .85; }
+.clock-tick { stroke: var(--ink-3); stroke-width: 1.5; }
+.clock-label { fill: var(--ink-3); font-size: 11px; font-family: var(--font-body); }
+.clock-center { fill: var(--ink); font: 600 28px var(--font-display); }
+.clock-sub { fill: var(--ink-3); font-size: 12px; }
+.clock-dot { stroke: var(--bg); stroke-width: 2; cursor: pointer; }
+.clock-dot:hover { stroke: var(--amber); }
+.clock-dot.unsure { opacity: .55; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0; margin: 10px 0 0; font-size: .85rem; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.legend i.night-key { background: #18233a; border: 1px solid var(--rule); border-radius: 2px; }
+
+/* ---------- Calendar heatmap ---------- */
+.heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+.heatmap-legend { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .8rem; }
+.heatmap-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* ---------- Species page ---------- */
+.species-cover { position: relative; aspect-ratio: 16 / 6; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 24px 60px -24px rgba(0,0,0,.85); }
+.species-cover img { width: 100%; height: 100%; object-fit: cover; }
+.species-cover .shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,.82) 100%); }
+.species-cover .cap { position: absolute; left: 26px; bottom: 20px; right: 26px; color: #fff; }
+.species-cover h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: .95; }
+.species-cover .sci { margin: 6px 0 8px; font-style: italic; color: rgba(255,255,255,.85); }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.species-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 28px; align-items: start; }
+.clock-wrap { display: flex; justify-content: center; }
+.about-grid { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 24px; align-items: start; }
+.about-text { font-size: 1.05rem; max-width: 65ch; margin-top: 0; }
+.wiki-img { width: 100%; border-radius: 10px; }
+
+/* ---------- Digest ---------- */
+.digest { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; margin-top: 12px; }
+.digest-photo { position: relative; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: #000; }
+.digest-photo a, .digest-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.digest-photo .stamp { position: absolute; left: 12px; bottom: 12px; background: rgba(0,0,0,.6); color: #fff; padding: 4px 10px; border-radius: 99px; font: 600 .8rem var(--font-display); letter-spacing: .05em; }
+.digest-highlights { padding-left: 18px; margin: 0; }
+.digest-highlights li { margin-bottom: 6px; }
+.new-species { color: var(--amber); font-weight: 700; }
+.digest-list { list-style: none; padding: 0; margin: 0; }
+.digest-list a { display: flex; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.digest-list b { font-family: var(--font-display); min-width: 190px; }
+
+@media (max-width: 820px) {
+  .species-grid, .about-grid, .digest { grid-template-columns: minmax(0, 1fr); }
+  .species-cover { aspect-ratio: 4 / 3; }
+  .wiki-img { max-width: 260px; }
+}
+
+.clock-row { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: 32px; align-items: center; }
+@media (max-width: 820px) { .clock-row { grid-template-columns: minmax(0, 1fr); } }
