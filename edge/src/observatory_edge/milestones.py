@@ -14,7 +14,8 @@ import json
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from .alerts import encounter_link, queue_system_alert
 from .astro import night_of
@@ -24,6 +25,7 @@ from .db import parse_iso, utcnow
 PUSH_KINDS = {"first_species", "back_after"}
 SPECIES_COUNTS = (10, 25, 50, 100)
 BACK_AFTER_DAYS = 14
+PUSH_MAX_AGE = timedelta(hours=24)  # never push about old visits (e.g. first run on old data)
 
 
 @dataclass
@@ -144,7 +146,8 @@ def evaluate_milestones(conn: sqlite3.Connection, settings: Settings) -> list[in
             _push(conn, settings, dict(row), v, confident)
         else:
             row = existing[key]
-            updates = {"encounter_id": v.encounter_id, "text": m["text"]}
+            updates = {"encounter_id": v.encounter_id, "text": m["text"],
+                       "night": m["night"].isoformat()}
             if row["status"] == "withdrawn":
                 updates["status"] = "active" if confident else "awaiting_confirmation"
             elif row["status"] == "awaiting_confirmation" and confident:
@@ -166,6 +169,8 @@ def _push(conn: sqlite3.Connection, settings: Settings, m: dict, v: V, confident
     """Queue owner/family pushes for push-worthy milestones on live captures, at most once each."""
     if m["kind"] not in PUSH_KINDS or not v.live:
         return
+    if datetime.now(timezone.utc) - v.t > PUSH_MAX_AGE:
+        return
     emoji = "🎉" if m["kind"] == "first_species" else "👋"
     if not m["pushed_owner"]:
         prefix = "" if confident else "(unconfirmed) "
@@ -175,7 +180,7 @@ def _push(conn: sqlite3.Connection, settings: Settings, m: dict, v: V, confident
             attach_detection_id=v.best_detection_id, link=encounter_link(settings, v.encounter_id))
         conn.execute("UPDATE milestone SET pushed_owner=1 WHERE id=?", (m["id"],))
     if confident and not m["pushed_family"] and m["status"] == "active":
-        when = v.t.strftime("%b %-d")
+        when = v.t.astimezone(ZoneInfo(settings.camera_timezone)).strftime("%b %-d")
         queue_system_alert(
             conn, "milestone", "Backyard wildlife", f"{emoji} {m['text']} Seen on {when}.",
             channel="family", encounter_id=v.encounter_id, attach_frame_id=v.best_frame_id,

@@ -66,8 +66,10 @@ def _dur(minutes: float) -> str:
 
 
 def _clock(minute: int) -> str:
-    h = (minute // 60) % 24
-    return f"{12 if h % 12 == 0 else h % 12} {'am' if h < 12 else 'pm'}"
+    minute %= 1440
+    h, mm = divmod(minute, 60)
+    hh = 12 if h % 12 == 0 else h % 12
+    return f"{hh}{f':{mm:02d}' if mm else ''} {'am' if h < 12 else 'pm'}"
 
 
 def load_visits(conn: sqlite3.Connection) -> list[Visit]:
@@ -287,6 +289,7 @@ def compute_insights(conn: sqlite3.Connection, settings: Settings, species: str 
     key = (str(settings.db_path), species)
     if use_cache and key in _cache and time.time() - _cache[key][0] < 600:
         return _cache[key][1]
+    now_given = now
     now = now or datetime.now(timezone.utc)
     visits = load_visits(conn)
     confident = [v for v in visits if not v.uncertain]
@@ -304,7 +307,7 @@ def compute_insights(conn: sqlite3.Connection, settings: Settings, species: str 
             if ins:
                 out.append(ins)
     together = _together(confident, settings)
-    out += [t for t in together if species is None or species in t.text.lower()]
+    out += [t for t in together if species is None or species in t.id.split(":")[1:]]
     if species is None:
         for ins in (_week_activity(visits, now), _rain(conn, visits, settings)):
             if ins:
@@ -320,7 +323,8 @@ def compute_insights(conn: sqlite3.Connection, settings: Settings, species: str 
             trimmed.append(ins)
         out = trimmed
     out.sort(key=lambda i: -i.strength)
-    _cache[key] = (time.time(), out)
+    if use_cache and now_given is None:  # never cache results computed for another moment
+        _cache[key] = (time.time(), out)
     return out
 
 

@@ -100,3 +100,13 @@ def test_species_detail_and_frames_api(settings, conn, tmp_path):
     assert frames and frames[0]["boxes"][0]["category"] == "animal"
     act = client.get("/api/activity").json()
     assert len(act["points"]) == 5 and 0 < act["night"]["sunset_min"] < 1440
+
+
+def test_together_filter_is_exact_and_clock_has_minutes(conn, settings, tmp_path):
+    from observatory_edge.insights import _clock
+    assert _clock(8 * 60 + 30) == "8:30 am" and _clock(22 * 60) == "10 pm"
+    for d in range(3):
+        visit(conn, settings, tmp_path, datetime(2024, 6, 1 + d, 22, 0), FOX)
+        visit(conn, settings, tmp_path, datetime(2024, 6, 1 + d, 23, 30))
+    assert any(i.kind == "together" for i in compute_insights(conn, settings, species="red fox"))
+    assert not any(i.kind == "together" for i in compute_insights(conn, settings, species="fox"))

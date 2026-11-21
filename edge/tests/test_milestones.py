@@ -11,6 +11,11 @@ from observatory_edge.milestones import evaluate_milestones
 FOX = "f;mammalia;carnivora;canidae;vulpes;vulpes;red fox"
 
 
+def recent():
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("America/New_York")).replace(tzinfo=None, microsecond=0) - timedelta(hours=1)
+
+
 @pytest.fixture(autouse=True)
 def _restore_base():
     saved = test_flow.BASE
@@ -36,7 +41,7 @@ def alerts(conn, kind="milestone"):
 
 
 def test_first_species_once_with_owner_and_family_pushes(conn, settings, tmp_path):
-    visit(conn, settings, tmp_path, datetime(2024, 6, 1, 22, 0))
+    visit(conn, settings, tmp_path, recent())
     assert [m["text"] for m in milestones(conn, "first_species")] == ["First northern raccoon ever!"]
     assert evaluate_milestones(conn, settings) == []  # idempotent
     chans = sorted(a["channel"] for a in alerts(conn))
@@ -46,7 +51,7 @@ def test_first_species_once_with_owner_and_family_pushes(conn, settings, tmp_pat
 
 
 def test_low_confidence_waits_for_confirmation(conn, settings, tmp_path):
-    visit(conn, settings, tmp_path, datetime(2024, 6, 1, 22, 0), score=0.6)
+    visit(conn, settings, tmp_path, recent(), score=0.6)
     m = milestones(conn, "first_species")[0]
     assert m["status"] == "awaiting_confirmation"
     assert [a["channel"] for a in alerts(conn)] == ["owner"]
@@ -89,7 +94,7 @@ def test_relabel_withdraws_unsupported_first(conn, settings, tmp_path):
 
 
 def test_family_alert_skipped_without_family_topic(conn, settings, tmp_path):
-    visit(conn, settings, tmp_path, datetime(2024, 6, 1, 22, 0))
+    visit(conn, settings, tmp_path, recent())
     sent = []
 
     class Fake:
@@ -103,3 +108,18 @@ def test_family_alert_skipped_without_family_topic(conn, settings, tmp_path):
 def test_gap_wording():
     from observatory_edge.milestones import _gap
     assert [_gap(16), _gap(30), _gap(93), _gap(3918)] == ["16 days", "4 weeks", "3 months", "more than a year"]
+
+
+def test_family_push_uses_local_date_and_old_visits_never_push(conn, settings, tmp_path):
+    from datetime import timezone
+    from zoneinfo import ZoneInfo
+    # live visit "now" at 9:30 pm local is already the next day in UTC
+    now_local = datetime.now(ZoneInfo("America/New_York")).replace(hour=21, minute=30, second=0, microsecond=0)
+    if now_local > datetime.now(ZoneInfo("America/New_York")):
+        now_local -= timedelta(days=1)
+    visit(conn, settings, tmp_path, now_local.replace(tzinfo=None))
+    fam = [a for a in alerts(conn) if a["channel"] == "family"]
+    assert fam and now_local.strftime("%b %-d") in fam[0]["body"]
+    # a live-flagged but old visit (e.g. first run over existing data) never pushes
+    visit(conn, settings, tmp_path, datetime(2020, 1, 1, 22, 0), FOX)
+    assert not any("red fox" in a["body"] for a in alerts(conn))

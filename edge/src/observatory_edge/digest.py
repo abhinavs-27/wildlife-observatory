@@ -50,9 +50,10 @@ def build_digest(conn: sqlite3.Connection, settings: Settings, monday: date) -> 
     best = max(candidates, key=score) if candidates else None
 
     highlights: list[str] = []
-    for m in conn.execute(
-            "SELECT text FROM milestone WHERE status='active' AND night >= ? AND night < ? "
-            "ORDER BY id", (monday.isoformat(), (monday + timedelta(days=7)).isoformat())):
+    for m in conn.execute(  # same clock window as the visit counts
+            "SELECT m.text FROM milestone m JOIN encounter e ON e.id = m.encounter_id "
+            "WHERE m.status='active' AND e.start_at >= ? AND e.start_at < ? ORDER BY m.id",
+            (to_iso(start), to_iso(end))):
         highlights.append(m["text"])
     for ins in compute_insights(conn, settings, now=end.astimezone(ZoneInfo("UTC"))):
         if len(highlights) >= 3:
