@@ -283,6 +283,28 @@ def create_app(settings: Settings | None = None, start_background: bool = False)
             "SELECT id, kind, species, encounter_id, text, night, status, created_at FROM milestone "
             "WHERE status != 'withdrawn' ORDER BY night DESC, id DESC LIMIT ?", (min(limit, 200),))]
 
+    @app.get("/api/digests")
+    def api_digests(conn: Conn):
+        return [{"week": r["week"], "sent_at": r["sent_at"], **{k: json.loads(r["payload_json"]).get(k)
+                 for k in ("headline", "visits", "species", "best_frame_id", "start", "end")}}
+                for r in conn.execute("SELECT * FROM digest ORDER BY week DESC LIMIT 104")]
+
+    @app.get("/api/digests/current")
+    def api_digest_current(conn: Conn):
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        from .digest import build_digest
+        now = datetime.now(ZoneInfo(settings.camera_timezone))
+        return {**build_digest(conn, settings, (now - timedelta(days=now.weekday())).date()),
+                "in_progress": True}
+
+    @app.get("/api/digests/{week}")
+    def api_digest(week: str, conn: Conn):
+        r = conn.execute("SELECT * FROM digest WHERE week=?", (week,)).fetchone()
+        if not r:
+            raise HTTPException(404, "no digest for that week")
+        return {**json.loads(r["payload_json"]), "sent_at": r["sent_at"]}
+
     @app.get("/api/media")
     def api_media(conn: Conn, status: str | None = None, kind: str | None = None,
                   species: str | None = None, include_person: bool = False, limit: int = 60,

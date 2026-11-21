@@ -13,6 +13,10 @@ from .adapters import LocalFolderAdapter, poll_adapter_once
 from .alerts import make_sender, queue_system_alert, send_pending_alerts
 from .backup import create_backup
 from .config import Settings
+from .digest import maybe_send_weekly
+from .milestones import evaluate_milestones
+from .species_info import refresh_species_info
+from .weather import backfill_weather
 from .db import connect, utcnow
 from .jobs import requeue_expired
 from .queries import health_details
@@ -33,6 +37,7 @@ class BackgroundLoops:
         self.threads: list[threading.Thread] = []
         self._last_backup_day = None
         self._last_heartbeat_day = None
+        self._last_nightly_day = None
         self._alerted_problems: set[str] = set()
 
     def start(self) -> None:
@@ -76,6 +81,18 @@ class BackgroundLoops:
                 create_backup(conn, self.settings)
             except Exception as e:
                 queue_system_alert(conn, "failure", "Observatory backup failed", str(e))
+        try:
+            maybe_send_weekly(conn, self.settings, now)
+        except Exception:
+            log.exception("weekly digest failed")
+        try:  # cheap when nothing is pending; fetches names only
+            refresh_species_info(conn, self.settings, limit=5)
+        except Exception:
+            log.exception("species info refresh failed")
+        if now.hour == 2 and self._last_nightly_day != now.date():
+            self._last_nightly_day = now.date()
+            evaluate_milestones(conn, self.settings)
+            backfill_weather(conn, self.settings, now.date())
         h = health_details(conn, self.settings)
         if now.hour == 8 and self._last_heartbeat_day != now.date():
             self._last_heartbeat_day = now.date()
