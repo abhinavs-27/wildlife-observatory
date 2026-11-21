@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Offline from "@/components/Offline";
+import LitImage from "@/components/LitImage";
 import { edge, EdgeUnavailable, qs, type MediaItem, type SpeciesSummary } from "@/lib/api";
 import { localTime } from "@/lib/format";
 
@@ -63,8 +64,9 @@ export default async function Gallery({ searchParams }: { searchParams: Search }
           {media.map((m) => {
             const body =
               m.frame_id != null ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/frames/${m.frame_id}/file`} alt={m.original_name} loading="lazy" style={{ borderRadius: 3, aspectRatio: "4/3", objectFit: "cover", width: "100%" }} />
+                <div className="gallery-img">
+                  <LitImage src={`/frames/${m.frame_id}/file`} alt={m.original_name} />
+                </div>
               ) : (
                 <div className="empty-photo">{m.status === "failed" ? `Couldn't process: ${m.error ?? "unknown error"}` : m.kind === "video" ? "Video (no animal frames)" : "No preview"}</div>
               );

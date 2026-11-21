@@ -77,3 +77,13 @@ def test_refresh_skips_fresh_entries(conn, settings, tmp_path):
     assert refresh_species_info(conn, settings, client, pause_s=0) == 1
     n = len(calls)
     assert refresh_species_info(conn, settings, client, pause_s=0) == 0 and len(calls) == n
+
+
+def test_facts_file_is_well_formed():
+    from observatory_edge.species_info import _facts
+    facts = _facts()
+    assert len(facts) >= 90
+    for key, f in facts.items():
+        assert key == key.lower() and len(key.split()) == 2, key
+        assert f["activity"] in {"nocturnal", "diurnal", "crepuscular", "cathemeral"}, key
+        assert f["size"] and f["diet"] and f["nj_status"], key

@@ -9,8 +9,14 @@ your Mac whenever it's online. The Pi can do it too if benchmarks say it fits; s
 
 1. Flash **Raspberry Pi OS Lite (64-bit)** with Raspberry Pi Imager. In the imager settings,
    set the hostname to `observatory`, enable SSH with your key, and add the Wi-Fi details.
-2. Optional but recommended: put the data on a USB SSD and mount it at `/srv/observatory`.
-   microSD cards wear out.
+2. **Storage: microSD.** Use a **high-endurance** card (sold for dashcams and security
+   cameras), 128 GB or more. The system is built to be gentle on it:
+   - SQLite in WAL mode
+   - capped container logs
+   - no annotated images written to disk
+   - automatic cleanup (§7 below)
+   - nightly verified backups that you pull to the Mac (`backup-pull`), because when a microSD
+     card dies it usually takes everything on it.
 3. On the Pi:
 
 ```bash
@@ -94,8 +100,19 @@ cd edge && uv run observatory backup-pull --edge-url http://observatory:8000 --t
 - Docker starts at boot, and every container restarts on failure.
 - Workers retry the edge with backoff, and ingest works offline.
 - Alerts queue in an outbox and send when the network returns.
+- **Disk cleanup runs hourly.** Database rows are never deleted, only original files:
+  1. empty captures after 14 days
+  2. person-only photos after 30 days
+  3. above `DISK_HIGH_PCT` (85%): original video files older than 7 days (the small animal
+     frames are kept, so visits still replay)
+  4. then the oldest animal photos older than 30 days
+
+  Visits you corrected or confirmed, milestone and digest photos, and species portraits are never
+  cleaned up.
 - At `DISK_FLOOR_PCT` (95%), ingest pauses and the FTP receiver refuses uploads with `452`, so the
   camera keeps its clips. A failure alert is sent.
+- **Camera went quiet:** if no upload arrives for `CAMERA_SILENT_HOURS` (36 h), you get a push to
+  check the battery, Wi-Fi or FTP settings.
 - You get a daily "Observatory OK" push at 08:00, plus pushes when something breaks (worker
   offline with jobs waiting, disk, backups, quarantined files).
 - Health: `curl http://observatory:8000/api/health/details`, or the dashboard's **System** page.

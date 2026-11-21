@@ -39,6 +39,12 @@ class Settings:
     dashboard_url: str = ""
     family_min_score: float = 0.8
     weather_enabled: bool = False
+    disk_high_pct: float = 85.0
+    retention_empty_days: int = 14
+    retention_person_days: int = 30
+    video_keep_days: int = 7
+    animal_min_days: int = 30
+    camera_silent_hours: int = 36
     extra: dict = field(default_factory=dict)
 
     @property
@@ -102,4 +108,10 @@ def get_settings() -> Settings:
         dashboard_url=_env("DASHBOARD_URL", ""),
         family_min_score=float(_env("FAMILY_MIN_SCORE", "0.8")),
         weather_enabled=_env("WEATHER_ENABLED", "false").lower() in ("1", "true", "yes"),
+        disk_high_pct=float(_env("DISK_HIGH_PCT", "85")),
+        retention_empty_days=int(_env("RETENTION_EMPTY_DAYS", "14")),
+        retention_person_days=int(_env("RETENTION_PERSON_DAYS", "30")),
+        video_keep_days=int(_env("VIDEO_KEEP_DAYS", "7")),
+        animal_min_days=int(_env("ANIMAL_MIN_DAYS", "30")),
+        camera_silent_hours=int(_env("CAMERA_SILENT_HOURS", "36")),
     )

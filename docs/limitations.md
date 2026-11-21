@@ -30,8 +30,6 @@
   species. They're worth a skim, and easy to correct.
 - **Not built yet:**
   - the reprocessing UI and API (the schema and per-media active-run pointers support it)
-  - the retention and disk-quota cleanup (ingest does pause and FTP refuses at the disk floor)
-  - the camera-silent-for-N-hours alert
   - the FtpPullAdapter and RtspAdapter (stubs or docs only)
 - **The dashboard has no login.** It must only be reachable over the LAN or Tailscale. Photos of
   people are hidden from the gallery and from alerts, but are visible on sighting detail pages.

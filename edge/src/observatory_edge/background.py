@@ -15,6 +15,7 @@ from .backup import create_backup
 from .config import Settings
 from .digest import maybe_send_weekly
 from .milestones import evaluate_milestones
+from .retention import run_retention
 from .species_info import refresh_species_info
 from .weather import backfill_weather
 from .db import connect, utcnow
@@ -38,6 +39,7 @@ class BackgroundLoops:
         self._last_backup_day = None
         self._last_heartbeat_day = None
         self._last_nightly_day = None
+        self._last_retention_hour = None
         self._alerted_problems: set[str] = set()
 
     def start(self) -> None:
@@ -93,6 +95,13 @@ class BackgroundLoops:
             self._last_nightly_day = now.date()
             evaluate_milestones(conn, self.settings)
             backfill_weather(conn, self.settings, now.date())
+        hour_key = (now.date(), now.hour)
+        if self._last_retention_hour != hour_key:
+            self._last_retention_hour = hour_key
+            try:
+                run_retention(conn, self.settings)
+            except Exception:
+                log.exception("retention failed")
         h = health_details(conn, self.settings)
         if now.hour == 8 and self._last_heartbeat_day != now.date():
             self._last_heartbeat_day = now.date()

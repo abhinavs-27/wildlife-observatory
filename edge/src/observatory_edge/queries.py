@@ -312,6 +312,15 @@ def health_details(conn: sqlite3.Connection, settings: Settings) -> dict:
         problems.append("database unavailable")
     if disk_pct >= settings.disk_floor_pct:
         problems.append(f"disk {disk_pct}% full — ingest paused")
+    elif disk_pct >= settings.disk_high_pct:
+        problems.append(f"disk {disk_pct}% full — older photos are being cleaned up")
+    last_live = conn.execute(
+        "SELECT MAX(created_at) FROM media WHERE source_adapter != 'cli'").fetchone()[0]
+    if last_live:
+        silent_h = (now - parse_iso(last_live)).total_seconds() / 3600
+        if silent_h >= settings.camera_silent_hours:
+            problems.append(f"No new photos from the camera for {int(silent_h)} hours — check its "
+                            f"battery, Wi-Fi and FTP settings")
     for kind in ("detect", "classify"):
         waiting = queues.get(f"{kind}:queued", 0)
         if waiting and kind not in online_kinds:
@@ -330,6 +339,9 @@ def health_details(conn: sqlite3.Connection, settings: Settings) -> dict:
         "alert_backlog": last("SELECT COUNT(*) FROM alert WHERE status='pending'"),
         "alerts_failed": last("SELECT COUNT(*) FROM alert WHERE status='failed'"),
         "quarantined": quarantined,
+        "last_camera_upload": last_live,
+        "purged": {r[0]: r[1] for r in conn.execute(
+            "SELECT purge_reason, COUNT(*) FROM media WHERE purged_at IS NOT NULL GROUP BY 1")},
         "models": [dict(r) for r in conn.execute("SELECT name, version, task FROM model")],
         "settings": {"camera_timezone": settings.camera_timezone, "country": settings.country,
                      "admin1_region": settings.admin1_region,

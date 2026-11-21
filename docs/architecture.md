@@ -82,3 +82,17 @@ See `edge/src/observatory_edge/schema.sql`. Highlights:
 Web: `/species/[name]` (field guide), `/digest` (this week + archive), an activity clock, a
 calendar heatmap, and `Replay`, which loops a visit's frames on the home page and adds a
 scrubber on the sighting page.
+
+## Reliability additions
+
+- `retention.py` runs hourly and deletes original files, never database rows:
+  1. empty captures after 14 days
+  2. person-only photos after 30 days
+  3. above 85% disk: original videos after 7 days (their animal frames are kept, so visits still
+     replay)
+  4. then the oldest unprotected animal photos
+
+  This differs from the original design, which deleted derived frames first. On microSD the big
+  files are videos, and the frames are what the dashboard shows.
+- **Camera-quiet check:** `health_details` flags no live (non-CLI) upload for
+  `CAMERA_SILENT_HOURS`, and the background loop turns new problems into owner pushes.

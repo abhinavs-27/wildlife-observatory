@@ -35,6 +35,8 @@ def connect(db_path: Path | str) -> sqlite3.Connection:
 
 MIGRATIONS = [
     "ALTER TABLE alert ADD COLUMN link TEXT",
+    "ALTER TABLE media ADD COLUMN purged_at TEXT",
+    "ALTER TABLE media ADD COLUMN purge_reason TEXT",
 ]
 
 
